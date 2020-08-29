@@ -39,6 +39,12 @@ class DataLoader:
         fftabs = tf.transpose(tf.math.abs(audiofft))
         log_fft = self.power_to_db(fftabs)
         return log_fft
+    
+    def get_labels(self, case_num, train=train):
+        y_age = train['age'].map({'teens':0, 'twenties':1, 'seventies':2, 'fifties':3, 'fourties':4,
+       'thirties':5, 'sixties':6, 'eighties':7, 'nineties':8}).iloc[case_num]
+        y_gender = train['gender'].map({'male':0, 'female':1}).iloc[case_num]
+        return y_age, y_gender
 
     def show_spectra(self, case_num):
         log_fft = self.make_spectrogram(case_num)
