@@ -1,26 +1,23 @@
-import sys, os
-sys.path.append(os.path.join(sys.path[0], 'modules'))
-
-import pandas as pd 
+import path_configs # noqa
 import numpy as np
 import tensorflow as tf
-import tensorflow_io as tfio
 import matplotlib.pyplot as plt
-import time
-
 import settings
 settings.init()
-from EncoderGenerators import TESTEncoderGenerator
+from EncoderGenerators import TESTEncoderGenerator # noqa
 
 
-#assumes that array is not zero
+# assumes that array is not zero
 def scaled(tensor):
-    return (tensor-tf.math.reduce_min(tensor))/(tf.math.reduce_max(tensor)-tf.math.reduce_min(tensor)) 
+    return (tensor-tf.math.reduce_min(tensor))/(tf.math.reduce_max(tensor)-tf.
+                                                math.reduce_min(tensor))
+
 
 samples = []
-for x in TESTEncoderGenerator().map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE):
+for x in TESTEncoderGenerator().map(scaled, num_parallel_calls=tf.data.
+                                    experimental.AUTOTUNE):
     samples.append(x)
-    if len(samples)>5:
+    if len(samples) > 5:
         break
 
 autoencoder = tf.keras.models.load_model('saved_models\\latent128.h5')

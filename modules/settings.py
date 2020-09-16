@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def init():
     global AE_TIMESTEPS
     global AE_WINDOWS_STEP
