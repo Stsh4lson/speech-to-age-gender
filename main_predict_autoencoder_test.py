@@ -4,7 +4,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import settings
 settings.init()
-from EncoderGenerators import TESTEncoderGenerator # noqa
+from modules.EncoderGenerators import * # noqa
 
 
 # assumes that array is not zero
@@ -14,13 +14,13 @@ def scaled(tensor):
 
 
 samples = []
-for x in TESTEncoderGenerator().map(scaled, num_parallel_calls=tf.data.
+for x in TrainEncoderGenerator().map(scaled, num_parallel_calls=tf.data.
                                     experimental.AUTOTUNE):
     samples.append(x)
     if len(samples) > 5:
         break
 
-autoencoder = tf.keras.models.load_model('saved_models\\latent128.h5')
+autoencoder = tf.keras.models.load_model('saved_models\\encoder_model_1_1600298595_1600298990.7384043.h5')
 
 yhat = autoencoder.predict(samples[3], verbose=0)
 fig, ax = plt.subplots(nrows=2, figsize=(24, 12))

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from modules import settings
+import settings
 
 
 class TrainEncoderGenerator(tf.data.Dataset):
@@ -81,7 +81,7 @@ class ValidationEncoderGenerator(tf.data.Dataset):
         )
 
 
-class TESTEncoderGenerator(tf.data.Dataset):
+class TestEncoderGenerator(tf.data.Dataset):
     def _generator(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE):
         from DataPreprocessor import DataLoader
         dl = DataLoader()
@@ -107,9 +107,9 @@ class TESTEncoderGenerator(tf.data.Dataset):
                 batch_end += WINDOWS_STEP
 
     def __new__(cls,
-                case_nums=settings.AE_VALIDATION_IDX,
+                case_nums=settings.AE_TRAIN_IDX,
                 TIMESTEPS=settings.AE_TIMESTEPS,
-                WINDOWS_STEP=settings.AE_WINDOWS_STEP,
+                WINDOWS_STEP=settings.AE_WINDOWS_STEP*2,
                 N_FEATURES=settings.AE_N_FEATURES,
                 BATCH_SIZE=settings.AE_BATCH_SIZE):
         return tf.data.Dataset.from_generator(
