@@ -15,6 +15,7 @@ def init():
     global TRAIN_DATA_LEN
     global VAL_DATA_LEN
     global LENGTHS
+    global MODEL_BATCH_SIZE
 
     df = pd.read_csv('data_info.csv')
 
@@ -23,6 +24,7 @@ def init():
     AE_WINDOWS_STEP = 32
     AE_N_FEATURES = 1025
     AE_BATCH_SIZE = 128
+    MODEL_BATCH_SIZE = 1024
     AE_EPOCHS = 20
     DATA_INDICES = df.index.values
     AE_TRAIN_IDX = DATA_INDICES[:int(len(DATA_INDICES)*0.7)]

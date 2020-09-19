@@ -46,7 +46,7 @@ class DataLoader:
                                  ).iloc[case_num]
         y_gender = train['gender'].map({'male': 0, 'female': 1}
                                        ).iloc[case_num]
-        return y_age, y_gender
+        return (y_age, y_gender)
 
     def show_spectra(self, case_num):
         log_fft = self.make_spectrogram(case_num)

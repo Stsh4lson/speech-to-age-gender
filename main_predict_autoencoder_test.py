@@ -4,7 +4,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import settings
 settings.init()
-from modules.EncoderGenerators import * # noqa
+from modules.EncoderGenerators import TrainEncoderGenerator # noqa
 
 
 # assumes that array is not zero
@@ -24,7 +24,7 @@ autoencoder = tf.keras.models.load_model('model_autoencoder_final.h5')
 encoder = autoencoder.layers[1]
 decoder = autoencoder.layers[2]
 encoder = tf.keras.models.Model(encoder.layers[0].input, encoder.layers[2]
-.output)
+                                .output)
 decoder_input = tf.keras.layers.Input(shape=(128,))
 decoder = tf.keras.models.Model(decoder_input,
                                 autoencoder.layers[-1](decoder_input))
