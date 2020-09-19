@@ -15,15 +15,24 @@ def scaled(tensor):
 
 samples = []
 for x in TrainEncoderGenerator().map(scaled, num_parallel_calls=tf.data.
-                                    experimental.AUTOTUNE):
+                                     experimental.AUTOTUNE):
     samples.append(x)
     if len(samples) > 5:
         break
 
-autoencoder = tf.keras.models.load_model('saved_models\\encoder_model_1_1600298595_1600298990.7384043.h5')
+autoencoder = tf.keras.models.load_model('model_autoencoder_final.h5')
+encoder = autoencoder.layers[1]
+decoder = autoencoder.layers[2]
+encoder = tf.keras.models.Model(encoder.layers[0].input, encoder.layers[2]
+.output)
+decoder_input = tf.keras.layers.Input(shape=(128,))
+decoder = tf.keras.models.Model(decoder_input,
+                                autoencoder.layers[-1](decoder_input))
 
-yhat = autoencoder.predict(samples[3], verbose=0)
-fig, ax = plt.subplots(nrows=2, figsize=(24, 12))
-ax[0].imshow(np.swapaxes(np.vstack(samples[3]), 0, 1))
-ax[1].imshow(np.swapaxes(np.vstack(yhat), 0, 1))
+yhat = encoder.predict(samples[4])
+fig, ax = plt.subplots(nrows=3, figsize=(24, 12))
+ax[0].imshow(np.swapaxes(np.vstack(samples[4]), 0, 1), cmap='plasma')
+ax[1].imshow(np.swapaxes(np.vstack(yhat), 0, 1), cmap='gray')
+ax[2].imshow(np.swapaxes(np.vstack(decoder.predict(yhat)), 0, 1),
+             cmap='plasma')
 plt.show()

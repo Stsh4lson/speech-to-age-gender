@@ -50,7 +50,7 @@ autoencoder = tf.keras.models.Model(inputs=auto_input, outputs=decoded)
 autoencoder.compile(optimizer='adam', loss='mse')
 
 NAME = "model_1_{}".format(int(time.time()))
-for folder_name in ['logs', 'saved_models', 'saved_models\\checkpoints']:
+for folder_name in ['logs', 'saved_models', 'saved_models/checkpoints']:
     try:
         os.mkdir(folder_name)
         print("Directory", folder_name,  "created ")
@@ -60,31 +60,31 @@ for folder_name in ['logs', 'saved_models', 'saved_models\\checkpoints']:
 callbacks = [
     # tf.keras.callbacks.TensorBoard(log_dir='logs\\{}'.format(NAME)),
     tf.keras.callbacks.ModelCheckpoint(
-        filepath='saved_models\\checkpoints\\{}.h5'.format(NAME),
+        filepath='saved_models/checkpoints/{}.h5'.format(NAME),
         monitor='val_loss', verbose=1, save_best_only=True, mode='auto'),
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+    tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
     ]
 
-with tf.device("GPU:0"):
-    history = autoencoder.fit(
-        TrainEncoderGenerator()
-        .prefetch(tf.data.experimental.AUTOTUNE)
-        .map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .map(doubleOutput, num_parallel_calls=tf.data.experimental.AUTOTUNE),
-        epochs=settings.AE_EPOCHS,
-        steps_per_epoch=settings.DATA_LEN // settings.AE_BATCH_SIZE,
-        verbose=15,
-        validation_data=ValidationEncoderGenerator()
-        .prefetch(tf.data.experimental.AUTOTUNE)
-        .map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .map(doubleOutput, num_parallel_calls=tf.data.experimental.AUTOTUNE),
-        validation_steps=len(settings.AE_VALIDATION_IDX) // settings
-        .AE_BATCH_SIZE,
-        callbacks=callbacks
-        )
+history = autoencoder.fit(
+    TrainEncoderGenerator()
+    .prefetch(tf.data.experimental.AUTOTUNE)
+    .map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    .map(doubleOutput, num_parallel_calls=tf.data.experimental.AUTOTUNE),
+    epochs=settings.AE_EPOCHS,
+    steps_per_epoch=settings.TRAIN_DATA_LEN // settings.AE_BATCH_SIZE,
+    verbose=1,
+    validation_data=ValidationEncoderGenerator()
+    .prefetch(tf.data.experimental.AUTOTUNE)
+    .map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    .map(doubleOutput, num_parallel_calls=tf.data.experimental.AUTOTUNE),
+    validation_steps=settings.VAL_DATA_LEN // settings.AE_BATCH_SIZE,
+    callbacks=callbacks
+    )
 
 tiem = time.time()
-pd.DataFrame(history).to_csv('history_{}.h5'.format(tiem))
-autoencoder.save('saved_models\\auto_{}_{}.h5'.format(NAME, tiem))
-encoder.save('saved_models\\encoder_{}_{}.h5'.format(NAME, tiem))
+autoencoder.save('saved_models/auto_{}_{}.h5'.format(NAME, tiem))
+encoder.save('saved_models/encoder_{}_{}.h5'.format(NAME, tiem))
+decoder.save('saved_models/decoder_{}_{}.h5'.format(NAME, tiem))
+history_df = pd.DataFrame(history.history)
+history_df.to_csv('history_{}.csv'.format(tiem))
 print('saved')

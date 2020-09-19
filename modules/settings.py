@@ -11,23 +11,26 @@ def init():
     global AE_TRAIN_IDX
     global AE_VALIDATION_IDX
     global AE_LATENT_DIM
-    global SMALL_DATA_INDICES
-    global DATA_LEN
+    global DATA_INDICES
+    global TRAIN_DATA_LEN
+    global VAL_DATA_LEN
+    global LENGTHS
 
-    train_shape = 322504
-    indices = np.arange(train_shape)
-    np.random.seed(5)
-    np.random.shuffle(indices)
-    n = len(indices)
-    df = pd.read_csv('small_data.csv')
+    df = pd.read_csv('data_info.csv')
 
+    LENGTHS = df['length']
     AE_TIMESTEPS = 64
     AE_WINDOWS_STEP = 32
     AE_N_FEATURES = 1025
     AE_BATCH_SIZE = 128
-    AE_EPOCHS = 1
-    SMALL_DATA_INDICES = indices[:train_shape//10]
-    AE_TRAIN_IDX = SMALL_DATA_INDICES[:int(n*0.7)]
-    AE_VALIDATION_IDX = SMALL_DATA_INDICES[int(n*0.7):]
+    AE_EPOCHS = 20
+    DATA_INDICES = df.index.values
+    AE_TRAIN_IDX = DATA_INDICES[:int(len(DATA_INDICES)*0.7)]
+    AE_VALIDATION_IDX = DATA_INDICES[int(len(DATA_INDICES)*0.7):]
     AE_LATENT_DIM = 128
-    DATA_LEN = (sum(df['length'])//64-31)//AE_WINDOWS_STEP
+    TRAIN_DATA_LEN = (sum(df.loc[AE_TRAIN_IDX]['length'])//64-31
+                      )//AE_WINDOWS_STEP
+    VAL_DATA_LEN = (sum(df.loc[AE_VALIDATION_IDX]['length'])//64-31
+                    )//AE_WINDOWS_STEP
+    print('TRAIN_DATA_LEN:', TRAIN_DATA_LEN)
+    print('VAL_DATA_LEN:', VAL_DATA_LEN)

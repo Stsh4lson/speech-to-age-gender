@@ -5,6 +5,7 @@ from modules import settings
 
 class TrainClassifierGenerator(tf.data.Dataset):
     def _generator(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE):
+        encoder = tf.keras.models.load_model('saved_models\encoder_model_1_1600375052_1600376295.1361377.h5')
         from DataPreprocessor import DataLoader
         dl = DataLoader()
         spectral_frames = []

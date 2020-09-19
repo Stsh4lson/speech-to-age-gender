@@ -7,16 +7,14 @@ import matplotlib.pyplot as plt
 class DataLoader:
     frame_length = 2048
     frame_step = 64
-    train = pd.read_csv('data/en/train.tsv', sep='\t')
-    train = train[['client_id', 'path', 'age', 'gender', 'sentence']].dropna()
-    train = train[train['gender'] != 'other']
+    train = pd.read_csv('data_info.csv')
 
     def _init_(self, frame_length, frame_step):
         self.frame_length = frame_length
         self.frame_step = frame_step
 
     def load_audio_binary(self, case_num, train=train):
-        path = str('data/en/clips/' + train['path'].iloc[case_num])
+        path = str('data/en/clips/' + train['path'].loc[case_num])
         audio_binary = tf.io.read_file(path)
         audio = tfio.audio.decode_mp3(audio_binary)
         return audio
