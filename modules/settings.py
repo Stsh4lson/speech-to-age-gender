@@ -16,7 +16,9 @@ def init():
     global VAL_DATA_LEN
     global LENGTHS
     global MODEL_BATCH_SIZE
-
+    global MODEL_EPOCHS
+    global TRAIN_DATA_LEN_FULL
+    global VAL_DATA_LEN_FULL
     df = pd.read_csv('data_info.csv')
 
     LENGTHS = df['length']
@@ -25,11 +27,15 @@ def init():
     AE_N_FEATURES = 1025
     AE_BATCH_SIZE = 128
     MODEL_BATCH_SIZE = 1024
+    MODEL_EPOCHS = 10
+
     AE_EPOCHS = 20
     DATA_INDICES = df.index.values
     AE_TRAIN_IDX = DATA_INDICES[:int(len(DATA_INDICES)*0.7)]
     AE_VALIDATION_IDX = DATA_INDICES[int(len(DATA_INDICES)*0.7):]
     AE_LATENT_DIM = 128
+    TRAIN_DATA_LEN_FULL = sum(df.loc[AE_TRAIN_IDX]['length'])
+    VAL_DATA_LEN_FULL = sum(df.loc[AE_VALIDATION_IDX]['length'])
     TRAIN_DATA_LEN = (sum(df.loc[AE_TRAIN_IDX]['length'])//64-31
                       )//AE_WINDOWS_STEP
     VAL_DATA_LEN = (sum(df.loc[AE_VALIDATION_IDX]['length'])//64-31
