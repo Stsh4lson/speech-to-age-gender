@@ -1,44 +1,56 @@
 import path_configs # noqa
-import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
 import settings
 from datetime import datetime
 import os
 settings.init()
 
-from modules.ClassifierGenerators import * # noqa
+from modules.ClassifierGenerators import (TrainClassifierGenerator,  # noqa
+                                          ValidationClassifierGenerator)  # noqa
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
 
 # assumes that array is not zero
 def scaled(tensor):
     return (tensor-tf.math.reduce_min(tensor))/(tf.math.reduce_max(tensor)-tf.
                                                 math.reduce_min(tensor))
 
+
 def base_model(main_model_input):
-    base_layer = tf.keras.layers.RepeatVector(settings.AE_TIMESTEPS)(main_model_input)
-    base_layer = tf.keras.layers.LSTM(128, activation='tanh', return_sequences=True)(base_layer)
-    base_layer = tf.keras.layers.LSTM(64, activation='tanh', return_sequences=False)(base_layer)
+    base_layer = tf.keras.layers.RepeatVector(settings
+                                              .AE_TIMESTEPS)(main_model_input)
+    base_layer = tf.keras.layers.LSTM(128, activation='tanh',
+                                      return_sequences=True)(base_layer)
+    base_layer = tf.keras.layers.LSTM(64, activation='tanh',
+                                      return_sequences=False)(base_layer)
     return base_layer
 
+
 # age branch
-def build_age_branch(inputs, num_ages = 9):    
+def build_age_branch(inputs):
     age_layer = tf.keras.layers.Dense(512, activation='relu')(inputs)
+    age_layer = tf.keras.layers.BatchNormalization()(age_layer)
     age_layer = tf.keras.layers.Dropout(0.4)(age_layer)
     age_layer = tf.keras.layers.Dense(256, activation='relu')(age_layer)
+    age_layer = tf.keras.layers.BatchNormalization()(age_layer)
     age_layer = tf.keras.layers.Dropout(0.4)(age_layer)
-    age_output = tf.keras.layers.Dense(num_ages, activation='softmax', name='age')(age_layer)
+    age_output = tf.keras.layers.Dense(9, activation='softmax',
+                                       name='age')(age_layer)
     return age_output
 
+
 # gender branch,
-def build_gender_branch(inputs, num_genders = 2):
-    gender_layer = tf.keras.layers.Dense(512, activation='relu')(inputs)
+def build_gender_branch(inputs):
+    gender_layer = tf.keras.layers.Dense(128, activation='relu')(inputs)
+    gender_layer = tf.keras.layers.BatchNormalization()(gender_layer)
     gender_layer = tf.keras.layers.Dropout(0.4)(gender_layer)
     gender_layer = tf.keras.layers.Dense(256, activation='relu')(gender_layer)
+    gender_layer = tf.keras.layers.BatchNormalization()(gender_layer)
     gender_layer = tf.keras.layers.Dropout(0.4)(gender_layer)
-    gender_output = tf.keras.layers.Dense(num_genders, activation='linear', name='gender')(gender_layer)
+    gender_output = tf.keras.layers.Dense(1, activation='softmax',
+                                          name='gender')(gender_layer)
     return gender_output
 
 
@@ -50,14 +62,20 @@ def assemble_full_model():
     age_branch = build_age_branch(inputs)
     gender_branch = build_gender_branch(inputs)
 
-    model = tf.keras.models.Model(inputs=main_model_input, outputs=[age_branch, gender_branch], name="voice_net")
+    model = tf.keras.models.Model(inputs=main_model_input,
+                                  outputs=[age_branch, gender_branch],
+                                  name="voice_net")
     return model
+
 
 model = assemble_full_model()
 
 model.compile(
     optimizer='adam',
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+    loss={'age': 'sparse_categorical_crossentropy',
+          'gender': 'binary_crossentropy'},
+    loss_weights={'age': 1,
+                  'gender': 1},
     metrics=['accuracy'])
 
 now = datetime.now()
@@ -65,7 +83,8 @@ date_time = now.strftime("%m_%d_%Y_%H_%M")
 
 NAME = ("main_model_" + date_time)
 
-for folder_name in ['logs', 'saved_models', os.path.join('saved_models', 'checkpoints')]:
+for folder_name in ['logs', 'saved_models', os.path.join('saved_models',
+                                                         'checkpoints')]:
     try:
         os.mkdir(folder_name)
         print("Directory", folder_name,  "created ")
@@ -76,7 +95,8 @@ for folder_name in ['logs', 'saved_models', os.path.join('saved_models', 'checkp
 callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir='logs\\{}'.format(NAME)),
     tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join('saved_models', 'checkpoints', '{}.h5'.format(NAME)),
+        filepath=os.path.join('saved_models', 'checkpoints',
+                              '{}.h5'.format(NAME)),
         monitor='val_loss', verbose=1, save_best_only=True, mode='auto'),
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
     ]
@@ -84,10 +104,11 @@ callbacks = [
 model.fit(
     TrainClassifierGenerator().prefetch(tf.data.experimental.AUTOTUNE),
     epochs=settings.MODEL_EPOCHS,
-    steps_per_epoch=( settings.TRAIN_DATA_LEN // 2 ) // settings.MODEL_BATCH_SIZE,
+    steps_per_epoch=(settings.TRAIN_DATA_LEN//2)//settings.MODEL_BATCH_SIZE,
     verbose=1,
-    validation_data=ValidationClassifierGenerator().prefetch(tf.data.experimental.AUTOTUNE),
-    validation_steps=( settings.VAL_DATA_LEN // 2 ) // settings.MODEL_BATCH_SIZE,
+    validation_data=ValidationClassifierGenerator()
+    .prefetch(tf.data.experimental.AUTOTUNE),
+    validation_steps=(settings.VAL_DATA_LEN//2)//settings.MODEL_BATCH_SIZE,
     callbacks=callbacks
     )
 

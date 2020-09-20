@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 
@@ -26,8 +25,8 @@ def init():
     AE_WINDOWS_STEP = 32
     AE_N_FEATURES = 1025
     AE_BATCH_SIZE = 128
-    MODEL_BATCH_SIZE = 1024
-    MODEL_EPOCHS = 10
+    MODEL_BATCH_SIZE = 256
+    MODEL_EPOCHS = 6
 
     AE_EPOCHS = 20
     DATA_INDICES = df.index.values

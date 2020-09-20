@@ -2,9 +2,11 @@ import tensorflow as tf
 import numpy as np
 import settings
 
+
 def scaled(tensor):
     return (tensor-tf.math.reduce_min(tensor))/(tf.math.reduce_max(tensor)-tf.
                                                 math.reduce_min(tensor))
+
 
 class TrainClassifierGenerator(tf.data.Dataset):
     def _generator(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE):
@@ -32,12 +34,16 @@ class TrainClassifierGenerator(tf.data.Dataset):
                     padding = int(max_batch_len - X_array.shape[0])
                     # padding elements to set length
                     X_array = tf.cast(X_array, tf.float32)
-                    labels = tf.cast(labels, tf.float32)
-                    X_array = tf.pad(X_array, ([[0, padding], [0, 0]]))
-                    labels = tf.pad(labels, ([[0, padding], [0, 0]]))
+                    labels = tf.cast(labels, tf.int32)
+                    X_array = tf.pad(X_array, ([[0, padding], [0, 0]]),
+                                     mode='REFLECT')
+                    labels = tf.pad(labels, ([[0, padding], [0, 0]]),
+                                    mode='REFLECT')
                     # reshaping tensors to wanted shapes
-                    X_array = tf.reshape(X_array, [1024, X_array.shape[0]//1024, 1025])
-                    labels = labels[::64]
+                    timesteps_ = X_array.shape[0]//BATCH_SIZE
+                    X_array = tf.reshape(X_array, [BATCH_SIZE, timesteps_,
+                                                   1025])
+                    labels = labels[::timesteps_]
 
                     y_age = labels[:, 0]
                     y_gender = labels[:, 1]
@@ -99,14 +105,16 @@ class ValidationClassifierGenerator(tf.data.Dataset):
                     X_array = tf.pad(X_array, ([[0, padding], [0, 0]]))
                     labels = tf.pad(labels, ([[0, padding], [0, 0]]))
                     # reshaping tensors to wanted shapes
-                    X_array = tf.reshape(X_array, [1024, X_array.shape[0]//1024, 1025])
-                    labels = labels[::64]
+                    timesteps_ = X_array.shape[0]//BATCH_SIZE
+                    X_array = tf.reshape(X_array, [BATCH_SIZE, timesteps_,
+                                                   1025])
+                    labels = labels[::timesteps_]
 
                     y_age = labels[:, 0]
                     y_gender = labels[:, 1]
                     # feature extraction from X tensor using pretrained encoder
                     latent_spectral_frames = encoder.predict(X_array)
-                    yield(latent_spectral_frames, y_age, y_gender)
+                    yield(scaled(latent_spectral_frames), y_age, y_gender)
                     data_len = X_sample.shape[1]
                     labels = []
                     audio_batch = []
@@ -123,7 +131,9 @@ class ValidationClassifierGenerator(tf.data.Dataset):
                 BATCH_SIZE=settings.MODEL_BATCH_SIZE):
         return tf.data.Dataset.from_generator(
             cls._generator,
-            output_types=(tf.dtypes.float32, tf.dtypes.float32, tf.dtypes.float32),
+            output_types=(tf.dtypes.float32,
+                          tf.dtypes.int32,
+                          tf.dtypes.int32),
             output_shapes=((BATCH_SIZE, 128),
                            (BATCH_SIZE, ),
                            (BATCH_SIZE, )),
