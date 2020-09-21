@@ -2,6 +2,7 @@ import path_configs # noqa
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+
 import settings
 settings.init()
 from modules.EncoderGenerators import TrainEncoderGenerator # noqa
@@ -30,9 +31,12 @@ decoder = tf.keras.models.Model(decoder_input,
                                 autoencoder.layers[-1](decoder_input))
 
 yhat = encoder.predict(samples[4])
-fig, ax = plt.subplots(nrows=3, figsize=(24, 12))
-ax[0].imshow(np.swapaxes(np.vstack(samples[4]), 0, 1), cmap='plasma')
-ax[1].imshow(np.swapaxes(np.vstack(yhat), 0, 1), cmap='gray')
-ax[2].imshow(np.swapaxes(np.vstack(decoder.predict(yhat)), 0, 1),
-             cmap='plasma')
+fig, ax = plt.subplots(nrows=5, figsize=(12, 6))
+ax[0].plot(tf.signal.inverse_stft(tf.cast(np.vstack(samples[4]), tf.complex64), frame_length=2048, frame_step=64)[::-1])
+ax[1].imshow(np.swapaxes(np.vstack(samples[4]), 0, 1), cmap='plasma', interpolation='nearest', aspect='auto')
+ax[2].imshow(np.swapaxes(np.vstack(yhat), 0, 1), cmap='gray')
+ax[3].imshow(np.swapaxes(np.vstack(decoder.predict(yhat)), 0, 1),
+             cmap='plasma', interpolation='nearest', aspect='auto')
+ax[4].plot(tf.signal.inverse_stft(tf.cast(np.vstack(decoder.predict(yhat)), tf.complex64), frame_length=2048, frame_step=64)[::-1])
+fig.savefig(os.path.join('figures', 'encoded.pdf'), bbox_inches='tight')
 plt.show()

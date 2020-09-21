@@ -2,7 +2,6 @@ import path_configs # noqa
 import settings
 import os
 import time
-import pandas as pd
 import tensorflow as tf
 settings.init()
 from EncoderGenerators import (TrainEncoderGenerator, # noqa
@@ -10,7 +9,7 @@ from EncoderGenerators import (TrainEncoderGenerator, # noqa
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
+tf.keras.backend.clear_session()
 
 # assumes that array is not zero
 def scaled(tensor):
@@ -58,14 +57,20 @@ for folder_name in ['logs', 'saved_models', 'saved_models/checkpoints']:
         print("Directory", folder_name,  "already exists")
 
 callbacks = [
-    # tf.keras.callbacks.TensorBoard(log_dir='logs\\{}'.format(NAME)),
+    tf.keras.callbacks.TensorBoard(log_dir=os.path.join('logs', str(NAME))),
     tf.keras.callbacks.ModelCheckpoint(
-        filepath='saved_models/checkpoints/{}.h5'.format(NAME),
+        filepath=os.path.join('saved_models', 'checkpoints',
+                              '{}.h5'.format(NAME)),
         monitor='val_loss', verbose=1, save_best_only=True, mode='auto'),
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
     ]
 
-history = autoencoder.fit(
+tf.keras.utils.plot_model(autoencoder,
+                          to_file=os.path.join('figures',
+                                               'autoencoder_schema.pdf'),
+                          show_shapes=True, expand_nested=True)
+
+autoencoder.fit(
     TrainEncoderGenerator()
     .prefetch(tf.data.experimental.AUTOTUNE)
     .map(scaled, num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -85,6 +90,4 @@ tiem = time.time()
 autoencoder.save('saved_models/auto_{}_{}.h5'.format(NAME, tiem))
 encoder.save('saved_models/encoder_{}_{}.h5'.format(NAME, tiem))
 decoder.save('saved_models/decoder_{}_{}.h5'.format(NAME, tiem))
-history_df = pd.DataFrame(history.history)
-history_df.to_csv('history_{}.csv'.format(tiem))
 print('saved')

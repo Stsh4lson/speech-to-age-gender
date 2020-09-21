@@ -21,35 +21,34 @@ def scaled(tensor):
 def base_model(main_model_input):
     base_layer = tf.keras.layers.RepeatVector(settings
                                               .AE_TIMESTEPS)(main_model_input)
-    base_layer = tf.keras.layers.LSTM(128, activation='tanh',
-                                      return_sequences=True)(base_layer)
-    base_layer = tf.keras.layers.LSTM(64, activation='tanh',
-                                      return_sequences=False)(base_layer)
+    base_layer = tf.keras.layers.Conv1D(filters=64, kernel_size=3,
+                                        activation='relu')(base_layer)
+    base_layer = tf.keras.layers.Dropout(0.4)(base_layer)
+    base_layer = tf.keras.layers.Conv1D(filters=128, kernel_size=3,
+                                        activation='relu')(base_layer)
+    base_layer = tf.keras.layers.Dropout(0.4)(base_layer)
+    base_layer = tf.keras.layers.Flatten()(base_layer)
     return base_layer
 
 
 # age branch
 def build_age_branch(inputs):
     age_layer = tf.keras.layers.Dense(512, activation='relu')(inputs)
-    age_layer = tf.keras.layers.BatchNormalization()(age_layer)
     age_layer = tf.keras.layers.Dropout(0.4)(age_layer)
     age_layer = tf.keras.layers.Dense(256, activation='relu')(age_layer)
-    age_layer = tf.keras.layers.BatchNormalization()(age_layer)
     age_layer = tf.keras.layers.Dropout(0.4)(age_layer)
-    age_output = tf.keras.layers.Dense(9, activation='softmax',
+    age_output = tf.keras.layers.Dense(9, activation='sigmoid',
                                        name='age')(age_layer)
     return age_output
 
 
 # gender branch,
 def build_gender_branch(inputs):
-    gender_layer = tf.keras.layers.Dense(128, activation='relu')(inputs)
-    gender_layer = tf.keras.layers.BatchNormalization()(gender_layer)
+    gender_layer = tf.keras.layers.Dense(512, activation='relu')(inputs)
     gender_layer = tf.keras.layers.Dropout(0.4)(gender_layer)
     gender_layer = tf.keras.layers.Dense(256, activation='relu')(gender_layer)
-    gender_layer = tf.keras.layers.BatchNormalization()(gender_layer)
     gender_layer = tf.keras.layers.Dropout(0.4)(gender_layer)
-    gender_output = tf.keras.layers.Dense(1, activation='softmax',
+    gender_output = tf.keras.layers.Dense(1, activation='sigmoid',
                                           name='gender')(gender_layer)
     return gender_output
 
@@ -73,7 +72,7 @@ model = assemble_full_model()
 model.compile(
     optimizer='adam',
     loss={'age': 'sparse_categorical_crossentropy',
-          'gender': 'binary_crossentropy'},
+          'gender': 'categorical_crossentropy'},
     loss_weights={'age': 1,
                   'gender': 1},
     metrics=['accuracy'])
@@ -93,13 +92,18 @@ for folder_name in ['logs', 'saved_models', os.path.join('saved_models',
 
 
 callbacks = [
-    tf.keras.callbacks.TensorBoard(log_dir='logs\\{}'.format(NAME)),
+    tf.keras.callbacks.TensorBoard(log_dir=os.path.join('logs', str(NAME))),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join('saved_models', 'checkpoints',
                               '{}.h5'.format(NAME)),
         monitor='val_loss', verbose=1, save_best_only=True, mode='auto'),
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
     ]
+
+tf.keras.utils.plot_model(model,
+                          to_file=os.path.join('figures',
+                                               'main_model_schema.pdf'),
+                          show_shapes=True, expand_nested=True)
 
 model.fit(
     TrainClassifierGenerator().prefetch(tf.data.experimental.AUTOTUNE),

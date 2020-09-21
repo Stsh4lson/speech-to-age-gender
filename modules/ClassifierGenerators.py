@@ -114,7 +114,7 @@ class ValidationClassifierGenerator(tf.data.Dataset):
                     y_gender = labels[:, 1]
                     # feature extraction from X tensor using pretrained encoder
                     latent_spectral_frames = encoder.predict(X_array)
-                    yield(scaled(latent_spectral_frames), y_age, y_gender)
+                    yield(latent_spectral_frames, y_age, y_gender)
                     data_len = X_sample.shape[1]
                     labels = []
                     audio_batch = []
