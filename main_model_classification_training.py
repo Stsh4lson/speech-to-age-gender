@@ -1,3 +1,4 @@
+
 import path_configs # noqa
 import tensorflow as tf
 import settings
@@ -18,9 +19,17 @@ def scaled(tensor):
                                                 math.reduce_min(tensor))
 
 
-def base_model(main_model_input):
-    base_layer = tf.keras.layers.RepeatVector(settings
-                                              .AE_TIMESTEPS)(main_model_input)
+def encoder():
+    autoencoder = tf.keras.models.load_model('model_autoencoder_final.h5')
+    encoder_layer = autoencoder.layers[1]
+    encoder_layer = tf.keras.models.Model(encoder_layer.layers[0].input,
+                                          encoder_layer.layers[2].output)
+    encoder_layer.trainable = False
+    return encoder_layer.output
+
+
+def base_model(encoder_output):
+    base_layer = tf.keras.layers.RepeatVector(settings.AE_TIMESTEPS)(encoder_output)
     base_layer = tf.keras.layers.Conv1D(filters=64, kernel_size=3,
                                         activation='relu')(base_layer)
     base_layer = tf.keras.layers.Dropout(0.4)(base_layer)
@@ -54,14 +63,14 @@ def build_gender_branch(inputs):
 
 
 def assemble_full_model():
-    main_model_input = tf.keras.layers.Input(shape=(settings.AE_LATENT_DIM))
+    encoder_output = encoder()
 
-    inputs = base_model(main_model_input)
+    inputs = base_model(encoder_output)
 
     age_branch = build_age_branch(inputs)
     gender_branch = build_gender_branch(inputs)
 
-    model = tf.keras.models.Model(inputs=main_model_input,
+    model = tf.keras.models.Model(inputs=encoder_output,
                                   outputs=[age_branch, gender_branch],
                                   name="voice_net")
     return model
@@ -76,6 +85,7 @@ model.compile(
     loss_weights={'age': 1,
                   'gender': 1},
     metrics=['accuracy'])
+print(model.summary())
 
 now = datetime.now()
 date_time = now.strftime("%m_%d_%Y_%H_%M")

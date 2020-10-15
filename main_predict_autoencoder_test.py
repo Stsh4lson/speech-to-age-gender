@@ -2,6 +2,7 @@ import path_configs # noqa
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import os
 
 import settings
 settings.init()
@@ -15,6 +16,7 @@ def scaled(tensor):
 
 
 samples = []
+
 for x in TrainEncoderGenerator().map(scaled, num_parallel_calls=tf.data.
                                      experimental.AUTOTUNE):
     samples.append(x)

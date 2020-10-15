@@ -10,12 +10,6 @@ def scaled(tensor):
 
 class TrainClassifierGenerator(tf.data.Dataset):
     def _generator(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE):
-        autoencoder = tf.keras.models.load_model('model_autoencoder_final.h5')
-        encoder = autoencoder.layers[1]
-
-        encoder = tf.keras.models.Model(encoder.layers[0].input,
-                                        encoder.layers[2].output)
-
         from DataPreprocessor import DataLoader
         dl = DataLoader()
         data_len = 0
@@ -48,8 +42,7 @@ class TrainClassifierGenerator(tf.data.Dataset):
                     y_age = labels[:, 0]
                     y_gender = labels[:, 1]
                     # feature extraction from X tensor using pretrained encoder
-                    latent_spectral_frames = encoder.predict(X_array)
-                    yield(latent_spectral_frames, y_age, y_gender)
+                    yield(X_array, y_age, y_gender)
                     data_len = X_sample.shape[1]
                     labels = []
                     audio_batch = []
@@ -68,7 +61,7 @@ class TrainClassifierGenerator(tf.data.Dataset):
             cls._generator,
             output_types=(tf.dtypes.float32, tf.dtypes.int32, tf.dtypes.int32),
 
-            output_shapes=((BATCH_SIZE, 128),
+            output_shapes=((BATCH_SIZE, TIMESTEPS, 1025),
                            (BATCH_SIZE, ),
                            (BATCH_SIZE, )),
             args=(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE)
@@ -134,7 +127,7 @@ class ValidationClassifierGenerator(tf.data.Dataset):
             output_types=(tf.dtypes.float32,
                           tf.dtypes.int32,
                           tf.dtypes.int32),
-            output_shapes=((BATCH_SIZE, 128),
+            output_shapes=((BATCH_SIZE, TIMESTEPS, 1025),
                            (BATCH_SIZE, ),
                            (BATCH_SIZE, )),
             args=(case_nums, TIMESTEPS, WINDOWS_STEP, BATCH_SIZE)
