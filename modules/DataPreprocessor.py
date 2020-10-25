@@ -2,14 +2,18 @@ import pandas as pd
 import tensorflow as tf
 import tensorflow_io as tfio
 import matplotlib.pyplot as plt
+import scipy.signal
+import numpy as np
 
 
 class DataLoader:
-    frame_length = 2048
-    frame_step = 64
+    sample_rate = 48000
+    frame_length = sample_rate//16
+    frame_step = 16
     train = pd.read_csv('data_info.csv')
 
-    def _init_(self, frame_length, frame_step):
+    def _init_(self, frame_length, frame_step, sample_rate):
+        self.sample_rate = sample_rate
         self.frame_length = frame_length
         self.frame_step = frame_step
 
@@ -32,12 +36,15 @@ class DataLoader:
         return log_spec
 
     def make_spectrogram(self, case_num):
-        audio = self.load_audio_binary(case_num)
-        audiofft = tf.signal.stft(tf.squeeze(audio), frame_length=self
-                                  .frame_length, frame_step=self.frame_step)
-        fftabs = tf.transpose(tf.math.abs(audiofft))
-        log_fft = self.power_to_db(fftabs)
-        return log_fft
+        audio = self.load_audio_binary(case_num)[:, 0]
+        f, t, Zxx = scipy.signal.stft(audio, fs=self.sample_rate,
+                                      window='hann', nperseg=self.frame_length,
+                                      noverlap=self.frame_step)
+        Zxx_real = np.real(Zxx)
+        complex_image = np.stack((Zxx_real, np.imag(Zxx),
+                                  np.zeros_like(Zxx_real)), axis=2)
+        # log_fft = self.power_to_db(fftabs)
+        return complex_image
 
     def get_labels(self, case_num, train=train):
         y_age = train['age'].map({'teens': 0, 'twenties': 1, 'seventies': 2,
