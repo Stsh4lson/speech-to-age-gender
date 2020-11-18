@@ -25,8 +25,15 @@ class DataLoader:
     def get_path(self, case_num, train=train):
         return str('data/en/clips/' + train['path'].loc[case_num])
 
+    def normalize_audio(self, tensor):
+        return (tensor-tf.math
+                .reduce_min(tensor))/(tf.math.
+                                      reduce_max(tensor)-tf.math.
+                                      reduce_min(tensor))-0.5
+
     def cut_voice(self, audio):
-        treshold = 0.1
+        audio = self.normalize_audio(audio)
+        treshold = 0.15
         treshold_plot = []
         treshold_x = []
 
@@ -43,14 +50,14 @@ class DataLoader:
             treshold_x.append(window_start)
             window_start += window
             window_end += window
-        
+
         treshold_plot = np.array(treshold_plot)
         tail = np.arange(np.where(treshold_plot == 1)[0][-1],
                          np.where(treshold_plot == 1)[0][-1]+10, 1)
         try:
-            treshold_plot[tail]=1
+            treshold_plot[tail] = 1
         except Exception:
-            print('bruh')
+            pass
         audio = audio[:treshold_x[np.where(treshold_plot == 1)[0][-1]]]
         audio = audio[treshold_x[np.where(treshold_plot == 1)[0][0]]:]
         return audio
@@ -62,8 +69,8 @@ class DataLoader:
         return audio[:, 0]
 
     def make_spectrogram(self, case_num):
-        audio = self.load_audio_binary(case_num).numpy()
-        audio = self.cut_voice(audio)
+        audio = self.load_audio_binary(case_num)
+        audio = self.cut_voice(audio).numpy()
         audio_spec = librosa.feature.melspectrogram(audio,
                                                     sr=self.sample_rate,
                                                     n_fft=self.frame_length,
