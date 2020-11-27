@@ -1,6 +1,5 @@
 import pandas as pd
 import tensorflow as tf
-import tensorflow_io as tfio
 import matplotlib.pyplot as plt
 import librosa
 import numpy as np
@@ -64,9 +63,8 @@ class DataLoader:
 
     def load_audio_binary(self, case_num):
         path = self.get_path(case_num)
-        audio_binary = tf.io.read_file(path)
-        audio = tfio.audio.decode_mp3(audio_binary)
-        return audio[:, 0]
+        audio = librosa.load(path, sr=48000, mono=True)
+        return audio
 
     def make_spectrogram(self, case_num):
         audio = self.load_audio_binary(case_num)

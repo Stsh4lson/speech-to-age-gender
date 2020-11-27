@@ -6,8 +6,7 @@ from datetime import datetime
 import os
 settings.init()
 
-from modules.ClassifierGenerators import (TrainClassifierGenerator,  # noqa
-                                          ValidationClassifierGenerator)  # noqa
+from modules.ClassifierGenerators import _generator
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -19,19 +18,20 @@ def scaled(tensor):
                                                 math.reduce_min(tensor))
 
 
-def encoder():
-    autoencoder = tf.keras.models.load_model('model_autoencoder_final.h5')
-    encoder_layer = autoencoder.layers[1]
-    encoder_layer = tf.keras.models.Model(encoder_layer.layers[0].input,
-                                          encoder_layer.layers[2].output)
-    encoder_layer.trainable = False
-    return encoder_layer.output
+dataset_train = tf.data.Dataset.from_generator(_generator,
+                                         args=['train'],
+                                         output_types=(tf.dtypes.float32, tf.dtypes.int32, tf.dtypes.int32),
+                                         output_shapes=((128, 64), (None), (None)))
+
+dataset_val = tf.data.Dataset.from_generator(_generator,
+                                            args=['val'],
+                                            output_types=(tf.dtypes.float32, tf.dtypes.int32, tf.dtypes.int32),
+                                            output_shapes=((128, 64), (None), (None)))
 
 
-def base_model(encoder_output):
-    base_layer = tf.keras.layers.RepeatVector(settings.AE_TIMESTEPS)(encoder_output)
+def base_model(inputs):
     base_layer = tf.keras.layers.Conv1D(filters=64, kernel_size=3,
-                                        activation='relu')(base_layer)
+                                        activation='relu')(inputs)
     base_layer = tf.keras.layers.Dropout(0.4)(base_layer)
     base_layer = tf.keras.layers.Conv1D(filters=128, kernel_size=3,
                                         activation='relu')(base_layer)
@@ -63,14 +63,15 @@ def build_gender_branch(inputs):
 
 
 def assemble_full_model():
-    encoder_output = encoder()
 
-    inputs = base_model(encoder_output)
+    inputs = tf.keras.Input(shape=(128, 64, 1), batch_size=1)
+
+    inputs = base_model(inputs)
 
     age_branch = build_age_branch(inputs)
     gender_branch = build_gender_branch(inputs)
 
-    model = tf.keras.models.Model(inputs=encoder_output,
+    model = tf.keras.models.Model(inputs=inputs,
                                   outputs=[age_branch, gender_branch],
                                   name="voice_net")
     return model
@@ -116,11 +117,11 @@ tf.keras.utils.plot_model(model,
                           show_shapes=True, expand_nested=True)
 
 model.fit(
-    TrainClassifierGenerator().prefetch(tf.data.experimental.AUTOTUNE),
+    dataset_train().prefetch(tf.data.experimental.AUTOTUNE),
     epochs=settings.MODEL_EPOCHS,
     steps_per_epoch=(settings.TRAIN_DATA_LEN//2)//settings.MODEL_BATCH_SIZE,
     verbose=1,
-    validation_data=ValidationClassifierGenerator()
+    validation_data=dataset_val()
     .prefetch(tf.data.experimental.AUTOTUNE),
     validation_steps=(settings.VAL_DATA_LEN//2)//settings.MODEL_BATCH_SIZE,
     callbacks=callbacks

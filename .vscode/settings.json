@@ -1,6 +1,5 @@
 {
-    "python.linting.pylintEnabled": false,
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.pythonPath": "/home/stshalson/anaconda3/bin/python"
+    "python.pythonPath": "C:\\Users\\skaya\\anaconda3\\envs\\tf-gpu\\python.exe",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
 }
