@@ -41,27 +41,35 @@ def read_TFRecord(input_shape: dict,
     return dset
 
 
-time_steps = 128
-n_features = 128
-latent_dims = 2048
+input_shape = [128, 128, 1]
 
 
 def encoder(x):
-    x = tf.keras.layers.LSTM(
-        n_features//2, activation='tanh', return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(latent_dims, activation='tanh')(x)
+    x = tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=2)(x)#128 in
+    x = tf.keras.layers.LeakyReLU()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=2)(x)#64 in
+    x = tf.keras.layers.LeakyReLU()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Conv2D(filters=8, kernel_size=3, strides=2)(x)#32 in
+    x = tf.keras.layers.LeakyReLU()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     return x
 
 
 def decoder(x):
-    x = tf.keras.layers.RepeatVector(n_features)(x)
-    x = tf.keras.layers.LSTM(n_features//2, activation='tanh', return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(n_features, return_sequences=True)(x)
+    x = tf.keras.layers.Conv2DTranspose(filters=32, kernel_size=3, strides=2)(x)
+    x = tf.keras.layers.LeakyReLU()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Conv2DTranspose(filters=32, kernel_size=3, strides=2)(x)
+    x = tf.keras.layers.LeakyReLU()(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Conv2DTranspose(1, kernel_size=4, strides=2, activation='sigmoid')(x)
     return x
 
 
 def autoencoder():
-    input = tf.keras.layers.Input(shape=(time_steps, n_features))
+    input = tf.keras.layers.Input(shape=input_shape)
     encoded = encoder(input)
     decoded = decoder(encoded)
     return tf.keras.models.Model(inputs=input, outputs=decoded)
