@@ -4,13 +4,13 @@ import tensorflow_io as tfio
 import matplotlib.pyplot as plt
 import librosa
 import numpy as np
-from modules.data_load import data_load
+from utils.data_load import data_load
 
 
 class DataPreprocessor:
     sample_rate = 48000
     window_time = 22
-    frame_length = int(48000*window_time/1000)
+    frame_length = int(48000*window_time/1000) # 1056
     frame_step = frame_length//4
     data_load(clip=2000)
     train = pd.read_csv('data_info.csv').sample(frac=1)
@@ -64,14 +64,13 @@ class DataPreprocessor:
         audio = audio[treshold_x[np.where(treshold_plot == 1)[0][0]]:]
         return audio
 
-    def load_audio_binary(self, case_num):
-        path = self.get_path(case_num)
+    def load_audio_binary(self, path):
         audio_binary = tf.io.read_file(path)
         audio = tfio.audio.decode_mp3(audio_binary)
         return audio[:, 0]
 
-    def make_spectrogram(self, case_num):
-        audio = self.load_audio_binary(case_num)
+    def make_spectrogram(self, path):
+        audio = self.load_audio_binary(path)
         audio = self.cut_voice(audio)
         audio_spec = librosa.feature.melspectrogram(audio.numpy(),
                                                     sr=self.sample_rate,
@@ -83,8 +82,8 @@ class DataPreprocessor:
                                             top_db=80.0)
         return db_audio_spec
 
-    def pad_spec(self, audio_mel_spec):
-        padding = int(np.ceil(audio_mel_spec.shape[1]/128)*128 - audio_mel_spec
+    def pad_spec(self, audio_mel_spec, padding_length=128):
+        padding = int(np.ceil(audio_mel_spec.shape[1]/padding_length)*padding_length - audio_mel_spec
                       .shape[1])
         return np.pad(audio_mel_spec, (((0, 0), (0, padding))), mode='wrap')
 
