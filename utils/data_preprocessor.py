@@ -1,39 +1,52 @@
 import pandas as pd
 import tensorflow as tf
-import tensorflow_io as tfio
+# import tensorflow_io as tfio
 import matplotlib.pyplot as plt
 import librosa
 import numpy as np
 from utils.data_load import data_load
-
+import tensorflow_io as tfio
 
 class DataPreprocessor:
-    sample_rate = 48000
-    window_time = 22
-    frame_length = int(48000*window_time/1000) # 1056
-    frame_step = frame_length//4
-    data_load(clip=2000)
-    train = pd.read_csv('data_info.csv').sample(frac=1)
-
-    def _init_(self, window_time, frame_length, frame_step, sample_rate):
+    """[summary]
+    """
+    def __init__(self, window_time=22, frame_length=None, frame_step=None, sample_rate=48000, verbose=1):
         self.sample_rate = sample_rate
-        self.frame_length = frame_length
-        self.frame_step = frame_step
         self.window_time = window_time
+
+        if frame_length:
+            self.frame_length = frame_length
+        else:
+            self.frame_length = int(48000*window_time/1000)
+
+        if frame_step:
+            self.frame_step = frame_step
+        else:
+            self.frame_step = self.frame_length//4
+            
+        data_load()
+        self.data_df = pd.read_csv('data_info.csv')
 
     def scaled_array(self, array):
         return (array - np.min(array))/(np.max(array) - np.min(array))
 
-    def get_path(self, case_num, train=train):
-        return str('data/en/clips/' + train['path'].loc[case_num])
+    def get_path(self, case_num):
+        return str('data/en/clips/' + self.data_df['path'].loc[case_num])
 
     def normalize_audio(self, tensor):
-        return (tensor-tf.math
-                .reduce_min(tensor))/(tf.math.
-                                      reduce_max(tensor)-tf.math.
-                                      reduce_min(tensor))-0.5
+        return ((tensor-tf.math.reduce_min(tensor))/(tf.math.reduce_max(tensor)-tf.math.reduce_min(tensor))*2)-1
 
     def cut_voice(self, audio):
+        """
+        Cuts out silence from begining and end of audio sample
+        and normalizes it from 1 to -1.
+
+        Args:
+            audio (ndarray): 1D audio array
+
+        Returns:
+            [ndarray]: 1D audio array
+        """        
         audio = self.normalize_audio(audio)
         treshold = 0.15
         treshold_plot = []
@@ -64,15 +77,20 @@ class DataPreprocessor:
         audio = audio[treshold_x[np.where(treshold_plot == 1)[0][0]]:]
         return audio
 
+    # def load_audio_binary(self, path):
+    #     binary = pydub.AudioSegment.from_mp3(str(path))
+    #     audio = np.array(binary.get_array_of_samples())
+    #     return audio
+    
     def load_audio_binary(self, path):
         audio_binary = tf.io.read_file(path)
         audio = tfio.audio.decode_mp3(audio_binary)
-        return audio[:, 0]
+        return audio
 
     def make_spectrogram(self, path):
         audio = self.load_audio_binary(path)
         audio = self.cut_voice(audio)
-        audio_spec = librosa.feature.melspectrogram(audio.numpy(),
+        audio_spec = librosa.feature.melspectrogram(y=audio.numpy(),
                                                     sr=self.sample_rate,
                                                     n_fft=self.frame_length,
                                                     hop_length=self.frame_step,
@@ -93,9 +111,14 @@ class DataPreprocessor:
         return np.pad(audio_mel_spec, (((0, 0), (0, padding), (0, 0))), mode='wrap')
 
     def show_spectra(self, case_num):
-        db_fft = self.scaled_array(self.make_spectrogram(case_num))
+        path = self.get_path(case_num)
+        db_fft = self.scaled_array(self.make_spectrogram(path))
         fig, ax = plt.subplots(figsize=(16, 5))
         ax.imshow(db_fft, cmap='plasma', interpolation='nearest',
                   aspect='auto')
-        fig.show()
+        plt.show()
         # ax.set_yscale('symlog')
+        
+if __name__ == "__main__":
+    DP = DataPreprocessor()
+    DP.show_spectra(56)
