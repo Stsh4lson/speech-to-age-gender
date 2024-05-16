@@ -1,8 +1,8 @@
+# Deprecated
+### I do not longer maintain this repository, it's and old university project. I do not stand by this code but I leave it as a reference for someone who may find it usefull.
+
 # Speech-to-AgeGender
 Recognition of age and gender based on audio samples of human speech
-# Deprecated
-**I do not longer maintain this repository, it's and old university project. I do not stand by this code but I leave it as a reference for someone who may find it usefull.**
-
 
 
 ## Setup
